@@ -1,3 +1,5 @@
+"""Registry of deterministic analysis capabilities (Python & R)."""
+
 from __future__ import annotations
 
 CAPABILITY_REGISTRY: dict[str, dict] = {
