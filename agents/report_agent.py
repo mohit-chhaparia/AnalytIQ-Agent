@@ -3,3 +3,39 @@
 from __future__ import annotations
 
 
+def generate_plain_english_summary(model_result: dict, diagnostics: dict | list | None) -> str:
+    model_type = model_result.get("model_type", "model")
+    formula = model_result.get("formula", "")
+
+    if model_type.startswith("RandomForest"):
+        return _summary_ml(model_result, diagnostics)
+    if "ARIMA" in model_type or model_type.startswith("Time series"):
+        return _summary_ts(model_result, diagnostics)
+
+    text = f"""
+The selected model was a {model_type}. The model was fit using the formula:
+{formula or '(n/a)'}
+
+The analysis evaluates the relationship between the selected predictors and the outcome.
+Model diagnostics were reviewed to assess whether the fitted model was appropriate for the data.
+""".strip()
+
+    if "metrics" in model_result:
+        metrics = model_result["metrics"]
+        text += f"""
+
+For classification performance at a 0.5 probability threshold, the model achieved an accuracy of {metrics.get("accuracy", 0):.3f},
+sensitivity/recall of {metrics.get("sensitivity_recall", 0):.3f}, precision of {metrics.get("precision", 0):.3f},
+and AUC of {metrics.get("auc", float("nan")):.3f}.
+"""
+
+    if "r_squared" in model_result:
+        text += f"\nThe model R-squared is {model_result.get('r_squared', 0):.4f} (adjusted {model_result.get('adj_r_squared', 0):.4f}).\n"
+
+    if "dispersion" in model_result and model_result.get("dispersion") is not None:
+        text += f"\nPoisson dispersion (deviance / df residual) is approximately {model_result['dispersion']:.4f}.\n"
+
+    text += _diagnostic_notes_paragraph(diagnostics)
+    return text.strip()
+
+
