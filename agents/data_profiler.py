@@ -26,3 +26,25 @@ def infer_variable_type(series: pd.Series) -> str:
     if unique_count <= 20:
         return "categorical"
     return "text_or_high_cardinality_categorical"
+
+
+def numeric_summary(series: pd.Series) -> dict:
+    x = series.dropna()
+    if len(x) == 0:
+        return {}
+    q1 = x.quantile(0.25)
+    q3 = x.quantile(0.75)
+    iqr = q3 - q1
+    lower = q1 - 1.5 * iqr
+    upper = q3 + 1.5 * iqr
+    outlier_count = int(((x < lower) | (x > upper)).sum())
+    return {
+        "mean": round(float(x.mean()), 4),
+        "std": round(float(x.std(ddof=1)), 4) if len(x) > 1 else 0.0,
+        "min": round(float(x.min()), 4),
+        "q1": round(float(q1), 4),
+        "median": round(float(x.median()), 4),
+        "q3": round(float(q3), 4),
+        "max": round(float(x.max()), 4),
+        "outlier_count_iqr": outlier_count,
+    }
