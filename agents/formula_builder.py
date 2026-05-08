@@ -19,4 +19,18 @@ def build_formula(outcome: str, predictors: list[str], profile: dict) -> str:
     return outcome + " ~ " + " + ".join(formula_terms)
 
 
-
+def build_formula_with_interactions(
+    outcome: str,
+    predictors: list[str],
+    profile: dict,
+    interaction_pairs: list[tuple[str, str]] | None = None,
+) -> str:
+    """Additive terms plus explicit pairwise interactions (e.g. for effect modification)."""
+    base = build_formula(outcome, predictors, profile)
+    if not interaction_pairs:
+        return base
+    extra: list[str] = []
+    for a, b in interaction_pairs:
+        extra.append(f"{_term(a, profile)}:{_term(b, profile)}")
+    rhs = base.split("~", 1)[1].strip()
+    return f"{outcome} ~ {rhs} + " + " + ".join(extra)
