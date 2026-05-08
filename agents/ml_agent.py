@@ -16,4 +16,64 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 
+def _build_xy(
+    df: pd.DataFrame,
+    outcome: str,
+    predictors: list[str],
+) -> tuple[pd.DataFrame, np.ndarray]:
+    sub = df[[outcome] + predictors].dropna()
+    X = sub[predictors]
+    y = sub[outcome].values
+    return X, y
+
+
+def _make_pipeline(X: pd.DataFrame, task: str) -> Pipeline:
+    numeric = X.select_dtypes(include=[np.number]).columns.tolist()
+    categorical = [c for c in X.columns if c not in numeric]
+
+    transformers: list[tuple[str, Any, list[str]]] = []
+    if numeric:
+        transformers.append(
+            (
+                "num",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="median")),
+                        ("scaler", StandardScaler()),
+                    ]
+                ),
+                numeric,
+            )
+        )
+    if categorical:
+        transformers.append(
+            (
+                "cat",
+                Pipeline(
+                    [
+                        ("imputer", SimpleImputer(strategy="most_frequent")),
+                        (
+                            "onehot",
+                            OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                        ),
+                    ]
+                ),
+                categorical,
+            )
+        )
+    if not transformers:
+        raise ValueError("No numeric or categorical columns detected in predictors.")
+    pre = ColumnTransformer(transformers, remainder="drop")
+    if task == "classify":
+        est = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=8,
+            random_state=42,
+            class_weight="balanced_subsample",
+        )
+    else:
+        est = RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42)
+    return Pipeline([("prep", pre), ("model", est)])
+
+
 
