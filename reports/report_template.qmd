@@ -1,0 +1,16 @@
+---
+title: "Automated Statistical Modeling Report"
+format:
+  html: default
+---
+
+Use `agents/quarto_export.py` to generate `generated_report.qmd` from the app, or paste sections manually.
+
+Template placeholders (filled by Python `render_quarto_report`):
+
+- Analysis goal
+- Data quality JSON
+- Model recommendations JSON
+- Fitted model summary text
+- Diagnostics text
+- Plain-English interpretation
