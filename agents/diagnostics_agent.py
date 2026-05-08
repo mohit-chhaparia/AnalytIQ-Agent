@@ -60,3 +60,70 @@ def interpret_poisson_diagnostics(model_results: dict) -> list[str]:
     if model_results.get("overdispersion_flag"):
         notes.append("Overdispersion flag is set; review residual deviance and Pearson chi-square.")
     return notes
+
+
+def run_diagnostics_for_result(
+    model_result: dict,
+    df: pd.DataFrame | None = None,
+) -> dict:
+    """Return structured diagnostics keyed by model_type."""
+    mtype = model_result.get("model_type", "")
+    diagnostics: dict = {"notes": []}
+
+    if mtype == "Linear Regression" and "_model" in model_result:
+        model = model_result["_model"]
+        try:
+            jb = model.jarque_bera()
+            diagnostics["residual_normality"] = {
+                "jarque_bera": dict(
+                    zip(["jb_stat", "jb_pvalue", "skew", "kurtosis"], [float(x) for x in jb])
+                ),
+            }
+        except Exception as exc:  # noqa: BLE001
+            diagnostics["residual_normality"] = {"error": str(exc)}
+        diagnostics["heteroskedasticity"] = {
+            "breusch_pagan": _breusch_pagan_safe(model),
+        }
+        diagnostics["influence"] = {
+            "max_cooks_d": float(np.nanmax(model.get_influence().cooks_distance[0])),
+        }
+        if df is not None and hasattr(model, "model") and hasattr(model.model, "exog_names"):
+            exog_names = [x for x in model.model.exog_names if x != "Intercept"]
+            diagnostics["multicollinearity"] = _vif_table(df, exog_names)
+        diagnostics["notes"].append("Review residual plots for linearity and constant variance.")
+
+    elif mtype == "Logistic Regression":
+        if "metrics" in model_result:
+            diagnostics["classification"] = model_result["metrics"]
+        diagnostics["notes"].append(
+            "For logistic GLM, check calibration, influential points, and multicollinearity among predictors."
+        )
+        if "_y_true" in model_result and "_pred_prob" in model_result:
+            yt = model_result["_y_true"]
+            pr = model_result["_pred_prob"]
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                pred = (pr >= 0.5).astype(int)
+            cm = confusion_matrix(yt, pred, labels=[0, 1])
+            diagnostics["confusion_at_0.5"] = cm.tolist()
+
+    elif mtype == "Poisson Regression":
+        diagnostics["poisson"] = interpret_poisson_diagnostics(model_result)
+
+    elif mtype.startswith("RandomForest"):
+        diagnostics["notes"].append(
+            "Tree ensembles capture nonlinearities; validate on held-out data and check for leakage or shift."
+        )
+        if "cv_scores" in model_result:
+            diagnostics["cross_validation"] = {
+                "metric": model_result.get("cv_metric"),
+                "mean": model_result.get("cv_mean"),
+                "std": model_result.get("cv_std"),
+            }
+
+    elif "Time series" in mtype or "ARIMA" in mtype:
+        diagnostics["notes"].append(
+            "For forecasting, compare multiple horizons, consider seasonality, and stress-test residual structure."
+        )
+
+    return diagnostics
