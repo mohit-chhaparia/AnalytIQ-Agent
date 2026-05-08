@@ -11,3 +11,12 @@ def _term(name: str, profile: dict) -> str:
     return name
 
 
+def build_formula(outcome: str, predictors: list[str], profile: dict) -> str:
+    """Standard additive linear / GLM formula."""
+    formula_terms = [_term(p, profile) for p in predictors]
+    if not formula_terms:
+        return outcome + " ~ 1"
+    return outcome + " ~ " + " + ".join(formula_terms)
+
+
+
