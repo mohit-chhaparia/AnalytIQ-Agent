@@ -65,3 +65,41 @@ def _suspicious_categories(series: pd.Series, inferred_type: str) -> list[str]:
     if len(rare) > 0:
         notes.append(f"{len(rare)} categories appear in <1% of rows (sparse levels).")
     return notes
+
+
+def profile_dataframe(df: pd.DataFrame) -> dict:
+    profile: dict = {}
+    profile["shape"] = {"rows": int(df.shape[0]), "columns": int(df.shape[1])}
+    profile["columns"] = []
+    duplicate_count = int(df.duplicated().sum())
+    n = len(df) if len(df) else 1
+
+    for col in df.columns:
+        series = df[col]
+        missing_count = int(series.isna().sum())
+        missing_pct = round(missing_count / n * 100, 2)
+        unique_count = int(series.nunique(dropna=True))
+        inferred_type = infer_variable_type(series)
+        sample = series.dropna()
+        sample_vals = (
+            sample.astype(str).unique()[:5].tolist() if len(sample) else []
+        )
+        col_profile: dict = {
+            "name": col,
+            "dtype": str(series.dtype),
+            "inferred_type": inferred_type,
+            "missing_count": missing_count,
+            "missing_pct": missing_pct,
+            "unique_count": unique_count,
+            "sample_values": sample_vals,
+            "suspicious_categories": _suspicious_categories(series, inferred_type),
+        }
+        if pd.api.types.is_numeric_dtype(series):
+            col_profile.update(numeric_summary(series))
+        profile["columns"].append(col_profile)
+
+    profile["duplicates"] = {
+        "duplicate_rows": duplicate_count,
+        "duplicate_pct": round(duplicate_count / n * 100, 2),
+    }
+    return profile
