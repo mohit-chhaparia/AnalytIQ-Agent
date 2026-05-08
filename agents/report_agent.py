@@ -78,4 +78,17 @@ def _summary_ts(model_result: dict, diagnostics: dict | list | None) -> str:
     return (body + "\n" + _diagnostic_notes_paragraph(diagnostics)).strip()
 
 
-
+def _diagnostic_notes_paragraph(diagnostics: dict | list | None) -> str:
+    notes: list[str] = []
+    if isinstance(diagnostics, list):
+        notes.extend(str(n) for n in diagnostics)
+    elif isinstance(diagnostics, dict):
+        notes.extend(str(n) for n in diagnostics.get("notes", []))
+        if "poisson" in diagnostics:
+            notes.extend(str(n) for n in diagnostics["poisson"])
+    if not notes:
+        return ""
+    out = "\nKey diagnostic findings:\n"
+    for note in notes:
+        out += f"- {note}\n"
+    return out
