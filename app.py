@@ -19,3 +19,16 @@ from agents.quarto_export import dumps_compact, render_quarto_report
 from agents.threshold_tuning import tune_thresholds
 from agents.time_series_agent import recommend_time_series_columns
 
+st.set_page_config(page_title="Analysis agent", layout="wide")
+st.title("Statistical modeling, ML, and time series agent")
+st.caption(
+    "Reproducible tools (statsmodels, scikit-learn) plus an orchestration layer for routing and reporting. "
+    "Optional R via Rscript."
+)
+
+examples_dir = Path(__file__).resolve().parent / "examples"
+
+tab_upload, tab_quality, tab_model, tab_report = st.tabs(
+    ["Upload & goal", "Data quality & EDA", "Modeling", "Report & export"]
+)
+
