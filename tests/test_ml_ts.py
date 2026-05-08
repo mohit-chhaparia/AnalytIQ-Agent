@@ -11,4 +11,7 @@ def test_ml_binary_smoke():
     assert out["task"] == "classify"
 
 
-
+def test_ts_adf_smoke():
+    s = pd.Series(range(30), dtype=float)
+    out = run_time_series_summary(s)
+    assert "adf_pvalue" in out
