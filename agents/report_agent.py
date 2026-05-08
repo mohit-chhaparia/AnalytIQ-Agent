@@ -39,3 +39,26 @@ and AUC of {metrics.get("auc", float("nan")):.3f}.
     return text.strip()
 
 
+def _summary_ml(model_result: dict, diagnostics: dict | list | None) -> str:
+    task = model_result.get("task", "")
+    m = model_result.get("metrics", {})
+    lines = [
+        f"The pipeline fits a **{model_result.get('model_type')}** for **{task}** prediction.",
+        f"Cross-validated {model_result.get('cv_metric')} mean: {model_result.get('cv_mean', 0):.4f} (sd {model_result.get('cv_std', 0):.4f}).",
+    ]
+    if task == "classify":
+        lines.append(
+            f"Hold-out accuracy {m.get('accuracy', 0):.3f}; ROC-AUC {m.get('roc_auc_holdout', float('nan')):.3f}."
+        )
+    else:
+        lines.append(
+            f"Hold-out RMSE {m.get('rmse_holdout', 0):.4f}; R² {m.get('r2_holdout', 0):.4f}."
+        )
+    imps = model_result.get("top_feature_importances") or []
+    if imps:
+        top = ", ".join(f"{d['feature']}" for d in imps[:5])
+        lines.append(f"Largest tree-based importances (post encoding) include: {top}.")
+    body = "\n".join(lines)
+    return (body + "\n" + _diagnostic_notes_paragraph(diagnostics)).strip()
+
+
