@@ -76,4 +76,15 @@ def _make_pipeline(X: pd.DataFrame, task: str) -> Pipeline:
     return Pipeline([("prep", pre), ("model", est)])
 
 
+def _encode_binary_y(y: np.ndarray) -> tuple[np.ndarray, dict[str, Any]]:
+    s = pd.Series(y)
+    if pd.api.types.is_numeric_dtype(s) and set(pd.unique(s.dropna())).issubset({0, 1}):
+        return s.astype(float).values, {"encoding": "numeric_0_1"}
+    uniq = pd.unique(s.astype(str))
+    if len(uniq) != 2:
+        raise ValueError("Classification requires a binary outcome with two distinct values.")
+    low, high = sorted(uniq.tolist(), key=str)
+    y_enc = (s.astype(str) == high).astype(int).values
+    return y_enc, {"encoding": "two_class", "positive_class": str(high), "negative_class": str(low)}
+
 
