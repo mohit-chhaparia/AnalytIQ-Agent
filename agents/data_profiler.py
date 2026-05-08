@@ -48,3 +48,20 @@ def numeric_summary(series: pd.Series) -> dict:
         "max": round(float(x.max()), 4),
         "outlier_count_iqr": outlier_count,
     }
+
+
+def _suspicious_categories(series: pd.Series, inferred_type: str) -> list[str]:
+    """Heuristics for rare levels or dominant category."""
+    notes: list[str] = []
+    non_missing = series.dropna()
+    if len(non_missing) == 0:
+        return notes
+    if inferred_type not in ("categorical", "binary", "numeric_discrete_or_categorical"):
+        return notes
+    vc = non_missing.astype(str).value_counts(normalize=True)
+    if len(vc) > 0 and vc.iloc[0] > 0.95:
+        notes.append(f"Dominant category '{vc.index[0]}' accounts for >95% of values.")
+    rare = vc[vc < 0.01]
+    if len(rare) > 0:
+        notes.append(f"{len(rare)} categories appear in <1% of rows (sparse levels).")
+    return notes
