@@ -26,3 +26,32 @@ def recommend_time_series_columns(profile: dict) -> dict[str, Any]:
     return {"datetime_columns": dt_cols, "suggested_numeric_targets": numeric[:5]}
 
 
+def run_time_series_summary(series: pd.Series, max_lags: int = 20) -> dict[str, Any]:
+    """Stationarity check and ACF/PACF at a small lag window."""
+    y = pd.to_numeric(series, errors="coerce").dropna()
+    if len(y) < 12:
+        raise ValueError("Need at least 12 observations for a minimal time series summary.")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        adf_stat, adf_p, *_ = adfuller(y.values, autolag="AIC")
+
+    max_lags = min(max_lags, len(y) // 2 - 1, 40)
+    max_lags = max(5, max_lags)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        acf_vals = acf(y.values, nlags=max_lags, fft=True)
+        pacf_vals = pacf(y.values, nlags=max_lags, method="ywm")
+
+    return {
+        "model_type": "Time series characterization",
+        "n_obs": int(len(y)),
+        "adf_statistic": float(adf_stat),
+        "adf_pvalue": float(adf_p),
+        "stationarity_hint": "likely stationary" if adf_p < 0.05 else "unit root not rejected at 5%",
+        "acf_lags": list(range(len(acf_vals))),
+        "acf": [float(x) for x in acf_vals],
+        "pacf": [float(x) for x in pacf_vals],
+    }
+
+
