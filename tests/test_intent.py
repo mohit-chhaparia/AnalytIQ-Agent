@@ -10,4 +10,8 @@ def test_intent_time_series_keywords():
     assert r["flags"]["time_series"] is True
 
 
-
+def test_intent_ml_keywords():
+    df = pd.DataFrame({"y": [0, 1, 0, 1], "x": [1, 2, 3, 4]})
+    prof = profile_dataframe(df)
+    r = infer_analysis_modes("Use random forest with cross validation", prof, "y")
+    assert r["flags"]["tabular_ml"] is True
