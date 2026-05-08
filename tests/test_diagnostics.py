@@ -9,4 +9,8 @@ def test_poisson_interpretation():
     assert any("overdispersion" in n.lower() for n in notes)
 
 
-
+def test_ols_diagnostics_runs():
+    df = pd.DataFrame({"y": [1, 2, 3, 4, 5], "x": [1, 2, 3, 4, 5]})
+    res = run_linear_regression(df, "y ~ x")
+    diag = run_diagnostics_for_result(res, df)
+    assert "heteroskedasticity" in diag
