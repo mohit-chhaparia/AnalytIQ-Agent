@@ -55,3 +55,33 @@ def run_time_series_summary(series: pd.Series, max_lags: int = 20) -> dict[str, 
     }
 
 
+def run_arima_forecast(
+    series: pd.Series,
+    order: tuple[int, int, int],
+    steps: int = 5,
+) -> dict[str, Any]:
+    """Fit ARIMA(order) and return in-sample summary + forecast."""
+    if ARIMA is None:
+        raise ImportError("statsmodels ARIMA is required for forecasting.")
+    y = pd.to_numeric(series, errors="coerce").dropna()
+    if len(y) < max(15, sum(order) + 5):
+        raise ValueError("Insufficient history for the requested ARIMA order.")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = ARIMA(y.values, order=order).fit()
+    fc = model.get_forecast(steps=steps)
+    mean_fc = fc.predicted_mean
+    conf = fc.conf_int(alpha=0.05)
+
+    return {
+        "model_type": f"ARIMA{order}",
+        "order": order,
+        "aic": float(model.aic),
+        "bic": float(model.bic),
+        "summary_tail": model.summary().as_text()[-4000:],
+        "forecast_mean": [float(x) for x in mean_fc],
+        "forecast_ci_lower": [float(x) for x in conf[:, 0]],
+        "forecast_ci_upper": [float(x) for x in conf[:, 1]],
+        "_fitted": model,
+    }
