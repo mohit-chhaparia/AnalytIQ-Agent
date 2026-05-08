@@ -261,3 +261,32 @@ with tab_model:
                 tuned = tune_thresholds(mr["_y_true"], mr["_pred_prob"])
                 st.dataframe(pd.DataFrame(tuned[:15]))
 
+with tab_report:
+    if not st.session_state.get("agent_memory", {}).get("model_result"):
+        st.info("Run a model in the Modeling tab to enable reporting.")
+    else:
+        mem = st.session_state["agent_memory"]
+        mr = mem["model_result"]
+        plain = mem.get("plain_english", "")
+        st.subheader("Plain-language summary")
+        st.markdown(plain)
+        if st.button("Write Quarto report to reports/outputs", key="qmd_btn"):
+            out_dir = Path(__file__).resolve().parent / "reports" / "outputs"
+            fitted_text = strip_internal_keys(mr).get("summary") or strip_internal_keys(mr).get(
+                "summary_tail", ""
+            )
+            if not fitted_text:
+                fitted_text = json.dumps(strip_internal_keys(mr), default=str)[:20000]
+            artifact, msg = render_quarto_report(
+                out_dir,
+                analysis_goal=st.session_state.get("goal", ""),
+                data_quality_json=dumps_compact(st.session_state.get("profile", {})),
+                model_recommendations_json=dumps_compact(st.session_state.get("model_recs", {})),
+                fitted_summary_text=str(fitted_text)[:20000],
+                diagnostics_text=json.dumps(mem.get("diagnostics", {}), default=str)[:20000],
+                plain_english=plain,
+                to="html",
+            )
+            st.write(msg)
+            if artifact:
+                st.success(f"Output: {artifact}")
