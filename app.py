@@ -100,3 +100,164 @@ with tab_quality:
             st.subheader("Model & method recommendations")
             st.json(st.session_state.get("model_recs", {}))
 
+with tab_model:
+    if "df" not in st.session_state or "profile" not in st.session_state:
+        st.info("Complete the Upload and Data quality tabs first.")
+    else:
+        df = st.session_state["df"]
+        outcome = st.session_state["outcome"]
+        profile = st.session_state["profile"]
+
+        workflow = st.radio(
+            "Modeling workflow",
+            ["Statistical (GLM / OLS)", "Tabular ML (random forest)", "Time series"],
+            horizontal=True,
+        )
+
+        if workflow == "Statistical (GLM / OLS)":
+            predictors = st.multiselect(
+                "Predictors",
+                [c for c in df.columns if c != outcome],
+                default=[c for c in df.columns if c != outcome][: min(5, len(df.columns) - 1)],
+            )
+            formula = build_formula(outcome, predictors, profile) if predictors else ""
+            st.code(formula or "(select predictors)", language="text")
+
+            model_kind = st.selectbox(
+                "Model family",
+                ["linear", "logistic", "poisson", "ols_anova"],
+                format_func=lambda x: {
+                    "linear": "OLS / linear regression",
+                    "logistic": "Logistic (GLM binomial)",
+                    "poisson": "Poisson GLM",
+                    "ols_anova": "OLS with ANOVA table (Type II)",
+                }[x],
+            )
+
+            if st.button("Fit & diagnose", key="fit_glm") and formula:
+                agent = StatisticalAnalysisAgent(
+                    df, st.session_state.get("goal", ""), outcome
+                )
+                agent.memory["profile"] = profile
+                agent.build_plan()
+                try:
+                    agent.fit_primary_model(formula, model_kind)
+                    agent.run_diagnostics()
+                    agent.memory["plain_english"] = agent.generate_report_text()
+                    st.session_state["agent_memory"] = agent.memory
+                except Exception as exc:  # noqa: BLE001
+                    st.error(str(exc))
+
+        elif workflow == "Tabular ML (random forest)":
+            predictors = st.multiselect(
+                "Features",
+                [c for c in df.columns if c != outcome],
+                default=[c for c in df.columns if c != outcome][: min(8, len(df.columns) - 1)],
+            )
+            task = st.selectbox("Task", ["classify", "regress"])
+            if st.button("Run cross-validated forest", key="fit_ml"):
+                agent = StatisticalAnalysisAgent(
+                    df, st.session_state.get("goal", ""), outcome
+                )
+                agent.memory["profile"] = profile
+                agent.build_plan()
+                try:
+                    agent.fit_ml(predictors, task)
+                    agent.run_diagnostics()
+                    agent.memory["plain_english"] = agent.generate_report_text()
+                    st.session_state["agent_memory"] = agent.memory
+                except Exception as exc:  # noqa: BLE001
+                    st.error(str(exc))
+
+        else:
+            ts_hint = recommend_time_series_columns(profile)
+            st.caption("Pick a numeric series column; optionally parse a datetime column for ordering.")
+            col_list = df.columns.tolist()
+            default_ix = col_list.index(outcome) if outcome in col_list else 0
+            series_col = st.selectbox(
+                "Series column (y)",
+                col_list,
+                index=default_ix,
+            )
+            dt_cols = [None] + ts_hint.get("datetime_columns", [])
+            time_col = st.selectbox("Time / index column (optional)", dt_cols)
+            mode_ts = st.radio("Time series action", ["Characterize (ADF, ACF, PACF)", "ARIMA forecast"], horizontal=True)
+
+            if time_col:
+                dfp = df.copy()
+                dfp["_ts_ix"] = pd.to_datetime(dfp[time_col], errors="coerce")
+                dfp = dfp.sort_values("_ts_ix")
+                series = dfp[series_col]
+            else:
+                series = df[series_col]
+
+            if mode_ts.startswith("Characterize"):
+                if st.button("Run characterization", key="ts_char"):
+                    agent = StatisticalAnalysisAgent(
+                        df, st.session_state.get("goal", ""), outcome
+                    )
+                    agent.memory["profile"] = profile
+                    agent.build_plan()
+                    try:
+                        agent.fit_time_series_characterization(series)
+                        agent.run_diagnostics()
+                        agent.memory["plain_english"] = agent.generate_report_text()
+                        st.session_state["agent_memory"] = agent.memory
+                    except Exception as exc:  # noqa: BLE001
+                        st.error(str(exc))
+            else:
+                p = st.number_input("AR p", 0, 5, 1)
+                d = st.number_input("I d", 0, 2, 0)
+                q = st.number_input("MA q", 0, 5, 1)
+                steps = st.number_input("Forecast steps", 1, 30, 8)
+                if st.button("Fit ARIMA", key="ts_arima"):
+                    agent = StatisticalAnalysisAgent(
+                        df, st.session_state.get("goal", ""), outcome
+                    )
+                    agent.memory["profile"] = profile
+                    agent.build_plan()
+                    try:
+                        agent.fit_time_series_arima(series, (int(p), int(d), int(q)), steps=int(steps))
+                        agent.run_diagnostics()
+                        agent.memory["plain_english"] = agent.generate_report_text()
+                        st.session_state["agent_memory"] = agent.memory
+                    except Exception as exc:  # noqa: BLE001
+                        st.error(str(exc))
+
+        if st.session_state.get("agent_memory", {}).get("model_result"):
+            mr = st.session_state["agent_memory"]["model_result"]
+            st.subheader("Results")
+            if mr.get("summary"):
+                summary_text = mr.get("summary", "")
+                st.text(summary_text[:8000] + ("..." if len(summary_text) > 8000 else ""))
+            if mr.get("ols_summary"):
+                st.text(mr.get("ols_summary", "")[:6000])
+            if mr.get("anova_table"):
+                st.text(mr.get("anova_table", "")[:4000])
+            if mr.get("top_feature_importances"):
+                st.dataframe(pd.DataFrame(mr["top_feature_importances"]))
+            if mr.get("acf") is not None:
+                st.line_chart(pd.DataFrame({"acf": mr["acf"][:50]}))
+            if mr.get("forecast_mean"):
+                fc = pd.DataFrame(
+                    {
+                        "mean": mr["forecast_mean"],
+                        "lower": mr.get("forecast_ci_lower", []),
+                        "upper": mr.get("forecast_ci_upper", []),
+                    }
+                )
+                st.line_chart(fc)
+            st.subheader("Diagnostics")
+            st.json(
+                {
+                    k: v
+                    for k, v in st.session_state["agent_memory"]
+                    .get("diagnostics", {})
+                    .items()
+                }
+            )
+            if mr.get("model_type") == "Logistic Regression" and "_pred_prob" in mr:
+                st.subheader("Threshold tuning (top rows)")
+                tuned = tune_thresholds(mr["_y_true"], mr["_pred_prob"])
+                st.dataframe(pd.DataFrame(tuned[:15]))
+
