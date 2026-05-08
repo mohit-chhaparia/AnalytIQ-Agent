@@ -36,3 +36,20 @@ Summary:
     return response.choices[0].message.content or ""
 
 
+def rewrite_summary_with_ollama(raw_summary: str, model: str = "llama3.2") -> str:
+    try:
+        import ollama
+    except ImportError as exc:
+        raise ImportError("Install ollama package for local rewriting.") from exc
+
+    prompt = f"""Rewrite the following statistical model summary in clear plain English.
+Keep the explanation accurate. Do not invent results.
+
+Summary:
+{raw_summary}
+"""
+    response: dict[str, Any] = ollama.chat(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.get("message", {}).get("content", "")
