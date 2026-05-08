@@ -76,3 +76,39 @@ def run_logistic_regression(df: pd.DataFrame, formula: str, outcome: str) -> dic
     }
 
 
+def run_poisson_regression(df: pd.DataFrame, formula: str) -> dict:
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = smf.glm(formula=formula, data=df, family=sm.families.Poisson()).fit()
+    dispersion = float(model.deviance / model.df_resid) if model.df_resid else float("nan")
+    return {
+        "model_type": "Poisson Regression",
+        "formula": formula,
+        "summary": model.summary().as_text(),
+        "aic": float(model.aic),
+        "bic": float(model.bic_llf),
+        "dispersion": dispersion,
+        "overdispersion_flag": dispersion > 1.5,
+        "_model": model,
+    }
+
+
+def run_ols_anova_table(df: pd.DataFrame, formula: str, typ: int = 2) -> dict:
+    """ANOVA table for OLS (Type II by default; useful for linear models with factors)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model = smf.ols(formula=formula, data=df).fit()
+    anova_df = sm.stats.anova_lm(model, typ=typ)
+    return {
+        "model_type": "OLS ANOVA table",
+        "formula": formula,
+        "anova_type": typ,
+        "anova_table": anova_df.to_string(),
+        "ols_summary": model.summary().as_text(),
+        "_model": model,
+    }
+
+
+def strip_internal_keys(result: dict) -> dict:
+    """Return JSON-serializable model result for UI/API."""
+    return {k: v for k, v in result.items() if not k.startswith("_")}
