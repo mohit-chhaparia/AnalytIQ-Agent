@@ -15,3 +15,14 @@ except ImportError:  # pragma: no cover
     ARIMA = None  # type: ignore[misc, assignment]
 
 
+def recommend_time_series_columns(profile: dict) -> dict[str, Any]:
+    """Suggest datetime index and target from profile."""
+    dt_cols = [c["name"] for c in profile.get("columns", []) if c.get("inferred_type") == "date_or_datetime"]
+    numeric = [
+        c["name"]
+        for c in profile.get("columns", [])
+        if c.get("inferred_type") == "continuous_numeric"
+    ]
+    return {"datetime_columns": dt_cols, "suggested_numeric_targets": numeric[:5]}
+
+
