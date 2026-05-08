@@ -42,3 +42,21 @@ def _vif_table(df: pd.DataFrame, exog_cols: list[str]) -> dict:
         except Exception:
             continue
     return {"vif": vifs}
+
+
+def interpret_poisson_diagnostics(model_results: dict) -> list[str]:
+    notes: list[str] = []
+    dispersion = model_results.get("dispersion")
+    if dispersion is not None and not (isinstance(dispersion, float) and np.isnan(dispersion)):
+        if dispersion > 1.5:
+            notes.append(
+                "The dispersion statistic is greater than 1.5, suggesting possible overdispersion. "
+                "A quasi-Poisson or negative binomial model should be considered."
+            )
+        else:
+            notes.append(
+                "The dispersion statistic does not strongly suggest overdispersion for this fit."
+            )
+    if model_results.get("overdispersion_flag"):
+        notes.append("Overdispersion flag is set; review residual deviance and Pearson chi-square.")
+    return notes
