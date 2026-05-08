@@ -1,6 +1,6 @@
 # AnalytIQ Agent: AI-Powered Profiling, Modeling, and Recommendation System with Deterministic Engines and Local LLM Support
 
-This repository is an **AI-assisted analysis assistant** aimed at **statistical modeling**, **tabular machine learning**, **time series**, and reproducible reporting—not experimental design software.
+This repository is an **AI-assisted analysis assistant** aimed at **statistical modeling**, **tabular machine learning**, **time series**, and reproducible reporting.
 
 - **Deterministic engines**: `statsmodels` (GLM/OLS, ARIMA), `scikit-learn` (pipelines, cross-validation, random forests).
 - **Orchestration / “AI” layer**: intent routing (`intent_agent`), planning (`planning_agent`), controller memory (`StatisticalAnalysisAgent`), capability registry, optional local LLM hooks for **wording only** (never for inventing numbers).
