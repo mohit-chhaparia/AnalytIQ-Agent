@@ -32,3 +32,44 @@ tab_upload, tab_quality, tab_model, tab_report = st.tabs(
     ["Upload & goal", "Data quality & EDA", "Modeling", "Report & export"]
 )
 
+with tab_upload:
+    use_example = st.selectbox(
+        "Load data",
+        [
+            "Upload CSV",
+            "Example: linear regression",
+            "Example: logistic (binary)",
+            "Example: counts",
+            "Example: time series",
+        ],
+    )
+    df: pd.DataFrame | None = None
+    if use_example == "Upload CSV":
+        uploaded = st.file_uploader("CSV file", type=["csv"])
+        if uploaded:
+            df = pd.read_csv(uploaded)
+    else:
+        path = {
+            "Example: linear regression": examples_dir / "linear_regression_sample.csv",
+            "Example: logistic (binary)": examples_dir / "telco_churn_sample.csv",
+            "Example: counts": examples_dir / "count_data_sample.csv",
+            "Example: time series": examples_dir / "time_series_sample.csv",
+        }[use_example]
+        if path.exists():
+            df = pd.read_csv(path)
+        else:
+            st.error("Example file missing from examples/.")
+
+    if df is not None:
+        st.session_state["df"] = df
+        st.subheader("Preview")
+        st.dataframe(df.head(20))
+        outcome = st.selectbox("Outcome / target column", df.columns.tolist(), key="outcome")
+        st.session_state["outcome"] = outcome
+        goal = st.text_area(
+            "Analysis goal (used for routing hints)",
+            placeholder="Example: Forecast monthly demand with ARIMA, or predict churn with cross-validated ML.",
+            key="goal",
+        )
+        st.session_state["goal"] = goal
+
