@@ -20,3 +20,6 @@ def test_profile_basic():
     assert names["c"] == "binary"
 
 
+def test_infer_constant():
+    s = pd.Series([1, 1, 1])
+    assert infer_variable_type(s) == "constant_or_single_value"
