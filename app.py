@@ -73,3 +73,30 @@ with tab_upload:
         )
         st.session_state["goal"] = goal
 
+with tab_quality:
+    if "df" not in st.session_state:
+        st.info("Upload or select example data in the first tab.")
+    else:
+        df = st.session_state["df"]
+        outcome = st.session_state.get("outcome", df.columns[0])
+        if st.button("Run profiler & EDA recommendations", key="prof_btn"):
+            profile = profile_dataframe(df)
+            st.session_state["profile"] = profile
+            st.session_state["eda"] = recommend_eda_plots(profile, outcome)
+            st.session_state["model_recs"] = recommend_models(
+                profile, outcome, st.session_state.get("goal", "")
+            )
+            st.session_state["intent"] = infer_analysis_modes(
+                st.session_state.get("goal", ""), profile, outcome
+            )
+        if "profile" in st.session_state:
+            st.subheader("Suggested workflow (intent routing)")
+            st.json(st.session_state.get("intent", {}))
+            st.subheader("Data quality profile")
+            st.json(st.session_state["profile"])
+            st.subheader("Starter visualizations")
+            for p in st.session_state.get("eda", []):
+                st.write(p)
+            st.subheader("Model & method recommendations")
+            st.json(st.session_state.get("model_recs", {}))
+
