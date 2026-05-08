@@ -62,3 +62,20 @@ def _summary_ml(model_result: dict, diagnostics: dict | list | None) -> str:
     return (body + "\n" + _diagnostic_notes_paragraph(diagnostics)).strip()
 
 
+def _summary_ts(model_result: dict, diagnostics: dict | list | None) -> str:
+    if model_result.get("model_type") == "Time series characterization":
+        lines = [
+            "Univariate series summary:",
+            f"ADF test p-value ≈ {model_result.get('adf_pvalue', 0):.4f} ({model_result.get('stationarity_hint', '')}).",
+            "Use ACF/PACF for seasonal structure and candidate ARIMA orders.",
+        ]
+    else:
+        lines = [
+            f"Fitted **{model_result.get('model_type')}** with AIC {model_result.get('aic', 0):.2f}.",
+            f"Short-horizon forecast means: {model_result.get('forecast_mean', [])}.",
+        ]
+    body = "\n".join(lines)
+    return (body + "\n" + _diagnostic_notes_paragraph(diagnostics)).strip()
+
+
+
