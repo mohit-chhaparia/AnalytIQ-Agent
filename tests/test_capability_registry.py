@@ -30,3 +30,7 @@ def test_returns_none_for_unknown():
     assert details is None
 
 
+def test_known_unsupported_survival():
+    assert is_known_unsupported("survival analysis for time to churn") is True
+
+
