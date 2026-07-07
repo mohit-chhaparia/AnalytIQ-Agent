@@ -21,3 +21,21 @@ _OLLAMA_MODEL   = os.environ.get("OLLAMA_MODEL",          "llama3.2")
 _LMS_MODEL      = os.environ.get("LM_STUDIO_MODEL",       "local-model")
 
 
+def _has(key: str) -> bool:
+    val = os.environ.get(key, "").strip()
+    return bool(val and "your_" not in val and val != "")
+
+
+AVAILABLE = {
+    "claude":   _has("ANTHROPIC_API_KEY"),
+    "gemini":   _has("GEMINI_API_KEY"),
+    "groq":     _has("GROQ_API_KEY"),
+    "ollama":   os.environ.get("LLM_BACKEND", "").lower() == "ollama",
+    "lmstudio": os.environ.get("LLM_BACKEND", "").lower() == "lmstudio",
+}
+
+
+def any_llm_available() -> bool:
+    return any(AVAILABLE.values())
+
+
