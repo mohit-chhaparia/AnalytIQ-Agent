@@ -9,3 +9,8 @@ def test_find_logistic():
     assert details["supported"] is True
 
 
+def test_find_linear():
+    name, details = find_capability("run OLS regression on the outcome")
+    assert name == "linear_regression"
+
+
