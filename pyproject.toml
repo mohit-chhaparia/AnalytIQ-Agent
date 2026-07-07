@@ -1,0 +1,18 @@
+[tool.ruff]
+# Target Python 3.10+
+target-version = "py310"
+
+# Directories to lint
+include = ["agents/**/*.py", "tests/**/*.py", "app.py"]
+
+[tool.ruff.lint]
+# E/W = pycodestyle errors and warnings
+# F   = pyflakes (undefined names, real logic errors)
+# Deliberately omitting I (isort) — the existing codebase predates isort
+# enforcement; adding it would require touching every agent file at once.
+select = ["E", "W", "F"]
+ignore = [
+    "E501",  # line too long — not enforced, formatter's job
+    "F401",  # unused imports — __init__.py re-exports these intentionally
+    "F841",  # local var assigned but never used — pre-existing in agents/code_validator.py
+]
