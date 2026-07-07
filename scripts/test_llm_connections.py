@@ -118,7 +118,7 @@ def test_gemini() -> bool:
         return False
 
     try:
-        model_name = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(model_name)
 
