@@ -186,3 +186,48 @@ class TestLogisticRegression:
         assert np.isfinite(result["aic"])
 
 
+# Poisson regression
+
+class TestPoissonRegression:
+    REQUIRED_KEYS = (
+        "model_type", "formula", "summary",
+        "aic", "bic", "dispersion", "overdispersion_flag",
+    )
+
+    def test_returns_required_keys(self, poisson_df):
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        for key in self.REQUIRED_KEYS:
+            assert key in result, f"Missing key: '{key}'"
+
+    def test_model_type_label(self, poisson_df):
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        assert result["model_type"] == "Poisson Regression"
+
+    def test_dispersion_is_positive(self, poisson_df):
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        assert result["dispersion"] > 0
+
+    def test_overdispersion_flag_is_bool(self, poisson_df):
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        assert isinstance(result["overdispersion_flag"], bool)
+
+    def test_flag_true_when_dispersion_above_threshold(self, poisson_df):
+        """overdispersion_flag must be True iff dispersion > 1.5."""
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        expected = result["dispersion"] > 1.5
+        assert result["overdispersion_flag"] is expected
+
+    def test_overdispersed_data_produces_high_dispersion(self, overdispersed_df):
+        """Negative-binomial data should yield dispersion well above 1."""
+        result = run_poisson_regression(overdispersed_df, "y ~ x")
+        assert result["dispersion"] > 1.5, (
+            f"Expected high dispersion for NB data, got {result['dispersion']:.2f}"
+        )
+
+    def test_overdispersed_data_flagged(self, overdispersed_df):
+        result = run_poisson_regression(overdispersed_df, "y ~ x")
+        assert result["overdispersion_flag"] is True
+
+    def test_aic_is_finite(self, poisson_df):
+        result = run_poisson_regression(poisson_df, "y ~ x")
+        assert np.isfinite(result["aic"])
