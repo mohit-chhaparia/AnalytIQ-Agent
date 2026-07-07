@@ -19,3 +19,8 @@ def test_find_poisson():
     assert name == "poisson_regression"
 
 
+def test_find_anova():
+    name, details = find_capability("factorial ANOVA with covariates")
+    assert name == "anova_ancova"
+
+
