@@ -24,3 +24,9 @@ def test_find_anova():
     assert name == "anova_ancova"
 
 
+def test_returns_none_for_unknown():
+    name, details = find_capability("train a transformer model on embeddings")
+    assert name is None
+    assert details is None
+
+
