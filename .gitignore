@@ -1,12 +1,66 @@
-.venv/
-venv/
+# Environment & secrets (NEVER commit these)
+.env
+.env.local
+.env.*.local
+*.key
+secrets.json
+
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.egg
+
+# Testing & coverage
 .pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Agent sandbox & outputs (generated at runtime, not source code)
+sandbox/
+plugins/
+reports/outputs/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+*.log
+*.tmp
+
 .mypy_cache/
 .ruff_cache/
-.DS_Store
 *.csv~
 reports/outputs/*
 !reports/outputs/.gitkeep
-.streamlit/secrets.toml
