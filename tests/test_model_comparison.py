@@ -41,3 +41,34 @@ POISSON_OK = {
 }
 
 
+# Tests
+
+class TestCompareModels:
+
+    def test_empty_list_returns_gracefully(self):
+        result = compare_models([])
+        assert "ranked" in result
+        assert result["ranked"] == []
+        assert "best_model" in result
+
+    def test_single_model_is_best(self):
+        result = compare_models([LINEAR_HIGH])
+        assert result["best_model"] == "Linear Regression"
+        assert len(result["ranked"]) == 1
+
+    def test_returns_all_required_keys(self):
+        result = compare_models([LINEAR_HIGH, POISSON_OK])
+        for key in ("ranked", "best_model", "rationale", "comparison_table"):
+            assert key in result, f"Missing key: '{key}'"
+
+    def test_better_logistic_ranked_first(self):
+        result = compare_models([LOGISTIC_POOR, LOGISTIC_GOOD])
+        assert result["ranked"][0]["aic"] == pytest.approx(85.0), (
+            "Lower-AIC (better) logistic model should rank first"
+        )
+
+    def test_ranked_length_matches_inputs(self):
+        result = compare_models([LINEAR_HIGH, LOGISTIC_GOOD, POISSON_OK])
+        assert len(result["ranked"]) == 3
+
+    
