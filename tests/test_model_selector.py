@@ -121,3 +121,13 @@ class TestContinuousOutcome:
         assert len(result["recommendations"]) >= 2
 
 
+# Count outcome
+
+class TestCountOutcome:
+
+    def test_poisson_recommended_for_discrete_outcome(self, count_profile):
+        result = recommend_models(count_profile, "claims", "model count of claims")
+        models = [r["model"] for r in result["recommendations"]]
+        assert any("Poisson" in m for m in models), f"Expected Poisson in {models}"
+
+
