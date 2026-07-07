@@ -71,4 +71,33 @@ class TestCompareModels:
         result = compare_models([LINEAR_HIGH, LOGISTIC_GOOD, POISSON_OK])
         assert len(result["ranked"]) == 3
 
-    
+    def test_comparison_table_length_matches_inputs(self):
+        result = compare_models([LINEAR_HIGH, LINEAR_LOW])
+        assert len(result["comparison_table"]) == 2
+
+    def test_comparison_table_has_model_column(self):
+        result = compare_models([LINEAR_HIGH, POISSON_OK])
+        for row in result["comparison_table"]:
+            assert "Model" in row, f"Row missing 'Model' column: {row}"
+
+    def test_rationale_is_nonempty_string(self):
+        result = compare_models([LINEAR_HIGH, POISSON_OK])
+        assert isinstance(result["rationale"], str)
+        assert len(result["rationale"]) > 0
+
+    def test_best_model_name_in_best_result(self):
+        result = compare_models([LOGISTIC_GOOD, LINEAR_LOW])
+        best_type = result.get("best_result", {}).get("model_type")
+        assert best_type == result["best_model"]
+
+    def test_score_field_added_to_ranked(self):
+        """Each ranked entry should carry an internal score field."""
+        result = compare_models([LINEAR_HIGH, LINEAR_LOW])
+        for entry in result["ranked"]:
+            assert "_score" in entry
+
+    def test_higher_score_ranked_first(self):
+        result = compare_models([LINEAR_HIGH, LINEAR_LOW])
+        scores = [e["_score"] for e in result["ranked"]]
+        assert scores == sorted(scores, reverse=True), "Ranked list must be descending by score"
+
