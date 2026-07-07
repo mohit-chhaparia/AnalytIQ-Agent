@@ -28,3 +28,16 @@ LOGISTIC_GOOD = {
     "metrics": {"accuracy": 0.88, "auc": 0.93, "sensitivity_recall": 0.85, "precision": 0.87},
 }
 
+LOGISTIC_POOR = {
+    "model_type": "Logistic Regression",
+    "aic": 155.0, "bic": 160.0,
+    "metrics": {"accuracy": 0.61, "auc": 0.58, "sensitivity_recall": 0.55, "precision": 0.60},
+}
+
+POISSON_OK = {
+    "model_type": "Poisson Regression",
+    "aic": 310.0, "bic": 315.0,
+    "dispersion": 1.1, "overdispersion_flag": False,
+}
+
+
