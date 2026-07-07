@@ -103,3 +103,21 @@ class TestBinaryOutcome:
         assert len(result["recommendations"]) >= 2
 
 
+# Continuous outcome
+
+class TestContinuousOutcome:
+
+    def test_outcome_type_is_continuous(self, continuous_profile):
+        result = recommend_models(continuous_profile, "price", "predict house price")
+        assert result["outcome_type"] == "continuous_numeric"
+
+    def test_linear_regression_recommended(self, continuous_profile):
+        result = recommend_models(continuous_profile, "price", "predict house price")
+        models = [r["model"] for r in result["recommendations"]]
+        assert any("Linear" in m for m in models), f"Expected linear in {models}"
+
+    def test_at_least_two_recommendations(self, continuous_profile):
+        result = recommend_models(continuous_profile, "price", "predict house price")
+        assert len(result["recommendations"]) >= 2
+
+
