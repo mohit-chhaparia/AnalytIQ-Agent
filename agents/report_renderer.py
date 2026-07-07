@@ -90,3 +90,115 @@ def render_report(memory: dict, output_name: str = None) -> dict:
     }
 
 
+# context builder (handles both agent memory formats)
+
+def _build_context(memory: dict) -> dict:
+    report  = memory.get("report", {})
+    profile = memory.get("profile", {})
+    diag    = memory.get("diagnostics", [])
+
+    # Best model — works for both agent types
+    best = (
+        memory.get("best_model_result")
+        or (memory.get("model_results") or [{}])[-1]
+    )
+
+    # Plan — StatisticalAnalysisAgent has it; ClaudeToolAgent doesn't
+    plan = memory.get("plan", {})
+
+    # Diagnostics
+    all_diag_notes = []
+    for d in diag:
+        all_diag_notes.extend(d.get("notes", []))
+    diag_md = "\n".join(f"- {n}" for n in all_diag_notes) or "_No diagnostic issues flagged._"
+
+    # Threshold tuning
+    threshold_section = False
+    youden = {}
+    f1_thresh = {}
+    for d in diag:
+        tt = d.get("threshold_tuning")
+        if tt:
+            threshold_section = True
+            youden    = tt.get("best_youden", {})
+            f1_thresh = tt.get("best_f1", {})
+            break
+
+    # Model comparison
+    comp        = memory.get("model_comparison", {})
+    comp_md     = _table_to_md(comp.get("comparison_table", []))
+    comp_notes  = comp.get("rationale", "")
+
+    # EDA
+    eda_recs = memory.get("eda_recommendations", [])
+    eda_md   = "\n".join(
+        f"- **{r.get('plot','Plot')}**: {r.get('purpose','')}" for r in eda_recs[:8]
+    ) or "_Run EDA on Page 2 to see recommendations._"
+
+    # Model recommendations
+    rec_list = memory.get("model_recommendations", {}).get("recommendations", [])
+    recs_md  = "\n".join(
+        f"- **{r['model']}**: {r.get('reason','')}" for r in rec_list
+    ) or "_See Page 3 for model recommendations._"
+
+    # Engine
+    engine = "python"
+    if plan.get("candidate_models"):
+        engine = plan["candidate_models"][0].get("engine", "python")
+
+    # For ClaudeToolAgent: final_narrative is the report
+    plain_english = (
+        report.get("plain_english")
+        or memory.get("final_narrative")
+        or "_No summary generated._"
+    )
+
+    n_missing = sum(1 for c in profile.get("columns", []) if c.get("missing_pct", 0) > 0)
+    dup_rows  = profile.get("duplicates", {}).get("duplicate_rows", 0)
+    n_hc      = sum(
+        1 for c in profile.get("columns", [])
+        if c.get("inferred_type") == "text_or_high_cardinality_categorical"
+    )
+
+    metrics    = best.get("metrics", {})
+    metrics_md = _dict_to_md(metrics) if metrics else "_No classification metrics._"
+
+    return {
+        "analysis_goal":         report.get("analysis_goal", memory.get("user_goal", "")),
+        "outcome":               report.get("outcome", ""),
+        "goal_type":             report.get("goal_type", plan.get("goal_type", "")),
+        "report_date":           datetime.now().strftime("%B %d, %Y"),
+        "n_rows":                profile.get("shape", {}).get("rows", "—"),
+        "n_cols":                profile.get("shape", {}).get("columns", "—"),
+        "missing_cols":          n_missing,
+        "duplicate_rows":        dup_rows,
+        "high_cardinality_cols": n_hc,
+        "outcome_type":          report.get("goal_type", ""),
+        "best_model_type":       best.get("model_type", "N/A"),
+        "formula":               best.get("formula", "N/A"),
+        "engine":                engine,
+        "model_summary_text":    (best.get("summary", "") or "")[:3000],
+        "metrics_table":         metrics_md,
+        "diagnostics_summary":   diag_md,
+        "threshold_section":     threshold_section,
+        "threshold_summary":     "",
+        "youden_threshold":      youden.get("threshold", "—"),
+        "youden_sens":           youden.get("sensitivity", "—"),
+        "youden_spec":           youden.get("specificity", "—"),
+        "f1_threshold":          f1_thresh.get("threshold", "—"),
+        "f1_recall":             f1_thresh.get("sensitivity", "—"),
+        "f1_score":              f1_thresh.get("f1", "—"),
+        "comparison_table":      bool(comp_md),
+        "comparison_notes":      comp_notes,
+        "comparison_table_md":   comp_md,
+        "plain_english_summary": plain_english,
+        "revisions":             report.get("revisions", []),
+        "dynamic_used":          report.get("dynamic_used", bool(memory.get("dynamic_result"))),
+        "agent_version":         "1.0.0",
+        "eda_summary":           eda_md,
+        "model_recommendations": recs_md,
+        "data_quality_summary":  _profile_to_md(profile),
+        "data_path":             "",  # filled after save
+    }
+
+
