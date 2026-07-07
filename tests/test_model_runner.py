@@ -70,3 +70,62 @@ def overdispersed_df():
     return pd.DataFrame({"y": y, "x": x})
 
 
+# Linear regression
+
+class TestLinearRegression:
+    REQUIRED_KEYS = (
+        "model_type", "formula", "summary",
+        "aic", "bic", "r_squared", "adj_r_squared",
+        "residuals", "fitted_values",
+    )
+
+    def test_returns_required_keys(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        for key in self.REQUIRED_KEYS:
+            assert key in result, f"Missing key: '{key}'"
+
+    def test_model_type_label(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert result["model_type"] == "Linear Regression"
+
+    def test_formula_preserved(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert result["formula"] == "y ~ x"
+
+    def test_r_squared_in_unit_interval(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert 0.0 <= result["r_squared"] <= 1.0
+
+    def test_r_squared_high_for_linear_data(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert result["r_squared"] > 0.95, (
+            f"Expected R² > 0.95 for clean linear data, got {result['r_squared']:.4f}"
+        )
+
+    def test_adj_r_squared_le_r_squared(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert result["adj_r_squared"] <= result["r_squared"]
+
+    def test_residuals_length_matches_rows(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert len(result["residuals"]) == len(linear_df)
+
+    def test_fitted_values_length_matches_rows(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert len(result["fitted_values"]) == len(linear_df)
+
+    def test_aic_and_bic_are_finite(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert np.isfinite(result["aic"]), "AIC should be finite"
+        assert np.isfinite(result["bic"]), "BIC should be finite"
+
+    def test_residuals_sum_near_zero(self, linear_df):
+        """OLS residuals must sum to (approx) zero."""
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert abs(sum(result["residuals"])) < 1e-8
+
+    def test_summary_is_nonempty_string(self, linear_df):
+        result = run_linear_regression(linear_df, "y ~ x")
+        assert isinstance(result["summary"], str) and len(result["summary"]) > 0
+
+
