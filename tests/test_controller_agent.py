@@ -127,3 +127,32 @@ class TestLinearPipeline:
         assert "r_squared" in linear_results[0]
 
 
+# Logistic pipeline
+# "churn" keyword in goal routes to "classification" -> logistic_regression.
+
+class TestLogisticPipeline:
+
+    GOAL = "Predict customer churn"
+
+    def test_no_error_on_binary_data(self, logistic_df):
+        memory = _run(logistic_df, self.GOAL, "churn")
+        assert memory.get("error") is None
+
+    def test_profile_detects_binary_outcome(self, logistic_df):
+        memory = _run(logistic_df, self.GOAL, "churn")
+        cols = {c["name"]: c["inferred_type"] for c in memory["profile"]["columns"]}
+        assert cols["churn"] == "binary"
+
+    def test_logistic_model_fitted(self, logistic_df):
+        memory = _run(logistic_df, self.GOAL, "churn")
+        types = [r.get("model_type", "") for r in _fitted(memory)]
+        assert any("Logistic" in t for t in types), f"Expected a logistic model, got: {types}"
+
+    def test_auc_metric_present(self, logistic_df):
+        memory = _run(logistic_df, self.GOAL, "churn")
+        logistic = [r for r in _fitted(memory) if "Logistic" in r.get("model_type", "")]
+        assert len(logistic) >= 1
+        assert "metrics" in logistic[0]
+        assert "auc" in logistic[0]["metrics"]
+
+
