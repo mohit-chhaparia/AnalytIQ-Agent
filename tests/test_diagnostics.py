@@ -124,3 +124,29 @@ class TestLinearDiagnostics:
         assert "aic" in diag
 
 
+# run_diagnostics_for_result — Logistic
+
+class TestLogisticDiagnostics:
+
+    def test_returns_dict(self, logistic_result):
+        result, df = logistic_result
+        diag = run_diagnostics_for_result(result, df)
+        assert isinstance(diag, dict)
+
+    def test_auc_present(self, logistic_result):
+        result, df = logistic_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "auc" in diag
+
+    def test_auc_in_unit_interval(self, logistic_result):
+        result, df = logistic_result
+        diag = run_diagnostics_for_result(result, df)
+        if diag["auc"] is not None:
+            assert 0.0 <= diag["auc"] <= 1.0
+
+    def test_notes_present(self, logistic_result):
+        result, df = logistic_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "notes" in diag
+
+
