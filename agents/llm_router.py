@@ -39,3 +39,38 @@ def any_llm_available() -> bool:
     return any(AVAILABLE.values())
 
 
+# Task routing: (backend, model) in preference order
+#
+#   Task                   Best model          Why
+#   ─────────────────────  ─────────────────── ────────────────────────────────
+#   tool_orchestration     claude-opus         Best multi-step reasoning
+#   analysis_planning      claude-opus         Nuanced statistical thinking
+#   code_generation        claude-sonnet       Excellent code, faster + cheaper
+#   diagnostic_notes       claude-sonnet       Careful interpretation
+#   chart_interpretation   gemini-2.0-pro-exp  Only model with vision
+#   long_context_review    gemini-1.5-pro      1M token window
+#   plain_english_rewrite  groq / haiku        Simple task; save cost
+
+TASK_ROUTES = {
+    "tool_orchestration":    [("claude", _CLAUDE_AGENT),   ],
+    "analysis_planning":     [("claude", _CLAUDE_AGENT),   ("gemini", _GEMINI_CONTEXT), ("groq", _GROQ_MODEL)],
+    "code_generation":       [("claude", _CLAUDE_CODE),    ("groq", _GROQ_MODEL),       ("ollama", _OLLAMA_MODEL)],
+    "diagnostic_notes":      [("claude", _CLAUDE_CODE),    ("gemini", _GEMINI_FAST),    ("groq", _GROQ_MODEL)],
+    "chart_interpretation":  [("gemini", _GEMINI_VISION),  ],
+    "long_context_review":   [("gemini", _GEMINI_CONTEXT), ("claude", _CLAUDE_AGENT)],
+    "plain_english_rewrite": [("groq",   _GROQ_MODEL),     ("claude", _CLAUDE_REWRITE), ("gemini", _GEMINI_FAST),
+                               ("ollama", _OLLAMA_MODEL),  ("lmstudio", _LMS_MODEL)],
+}
+
+
+def best_for(task: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Return (backend, model_string) for the best available model for a task.
+    Returns (None, None) if nothing is configured.
+    """
+    for backend, model in TASK_ROUTES.get(task, [("groq", _GROQ_MODEL)]):
+        if AVAILABLE.get(backend):
+            return backend, model
+    return None, None
+
+
