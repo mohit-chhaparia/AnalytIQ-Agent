@@ -14,3 +14,10 @@ def test_returns_required_keys():
     assert len(r["threshold_table"]) == 81   # 0.10 to 0.90 step 0.01
 
 
+def test_perfect_predictor():
+    y = np.array([0, 0, 1, 1])
+    p = np.array([0.1, 0.2, 0.8, 0.9])
+    r = tune_thresholds(y, p)
+    assert r["auc"] == 1.0
+
+
