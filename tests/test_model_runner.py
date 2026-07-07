@@ -129,3 +129,60 @@ class TestLinearRegression:
         assert isinstance(result["summary"], str) and len(result["summary"]) > 0
 
 
+# Logistic regression
+
+class TestLogisticRegression:
+    REQUIRED_KEYS = (
+        "model_type", "formula", "summary",
+        "aic", "bic", "metrics", "predicted_probabilities",
+    )
+    REQUIRED_METRICS = ("accuracy", "sensitivity_recall", "precision", "auc")
+
+    def test_returns_required_keys(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        for key in self.REQUIRED_KEYS:
+            assert key in result, f"Missing key: '{key}'"
+
+    def test_model_type_label(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert result["model_type"] == "Logistic Regression"
+
+    def test_metrics_keys_present(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        for key in self.REQUIRED_METRICS:
+            assert key in result["metrics"], f"Missing metric: '{key}'"
+
+    def test_auc_in_unit_interval(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert 0.0 <= result["metrics"]["auc"] <= 1.0
+
+    def test_auc_above_chance_for_good_predictor(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert result["metrics"]["auc"] > 0.7, (
+            f"Expected AUC > 0.7 for clear signal, got {result['metrics']['auc']:.4f}"
+        )
+
+    def test_accuracy_in_unit_interval(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert 0.0 <= result["metrics"]["accuracy"] <= 1.0
+
+    def test_predicted_probabilities_in_unit_interval(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        probs = result["predicted_probabilities"]
+        assert all(0.0 <= p <= 1.0 for p in probs), "All probs must be in [0, 1]"
+
+    def test_predicted_probabilities_length(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert len(result["predicted_probabilities"]) == len(logistic_df)
+
+    def test_string_outcome_encoded_without_error(self, logistic_string_df):
+        """String 'yes'/'no' outcomes should be encoded automatically."""
+        result = run_logistic_regression(logistic_string_df, "outcome ~ x", "outcome")
+        assert result["model_type"] == "Logistic Regression"
+        assert 0.0 <= result["metrics"]["auc"] <= 1.0
+
+    def test_aic_is_finite(self, logistic_df):
+        result = run_logistic_regression(logistic_df, "y ~ x", "y")
+        assert np.isfinite(result["aic"])
+
+
