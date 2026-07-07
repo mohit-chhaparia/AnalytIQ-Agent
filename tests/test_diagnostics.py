@@ -150,3 +150,24 @@ class TestLogisticDiagnostics:
         assert "notes" in diag
 
 
+# run_diagnostics_for_result — Poisson
+
+class TestPoissonDiagnostics:
+
+    def test_returns_dict(self, overdispersed_poisson_result):
+        result, df = overdispersed_poisson_result
+        diag = run_diagnostics_for_result(result, df)
+        assert isinstance(diag, dict)
+
+    def test_dispersion_present(self, overdispersed_poisson_result):
+        result, df = overdispersed_poisson_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "dispersion" in diag
+
+    def test_overdispersion_note_for_nb_data(self, overdispersed_poisson_result):
+        result, df = overdispersed_poisson_result
+        diag = run_diagnostics_for_result(result, df)
+        notes_text = " ".join(diag.get("notes", [])).lower()
+        assert "overdispersion" in notes_text or "quasi" in notes_text, (
+            f"Expected overdispersion note, got: {diag.get('notes')}"
+        )
