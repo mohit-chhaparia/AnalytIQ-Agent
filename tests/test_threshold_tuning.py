@@ -21,3 +21,14 @@ def test_perfect_predictor():
     assert r["auc"] == 1.0
 
 
+def test_interpret_returns_strings():
+    np.random.seed(1)
+    y = np.random.randint(0, 2, 200)
+    p = np.clip(y + np.random.normal(0, 0.3, 200), 0, 1)
+    r = tune_thresholds(y, p)
+    notes = interpret_threshold_results(r)
+    assert isinstance(notes, list)
+    assert all(isinstance(n, str) for n in notes)
+    assert len(notes) >= 2
+
+
