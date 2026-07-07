@@ -99,3 +99,31 @@ class TestMemoryStructure:
         assert any("eda" in log for log in memory["logs"])
 
 
+# Linear pipeline
+# Goal deliberately avoids "predict" so infer_goal_type() falls back to
+# outcome type ("continuous_numeric") -> "regression" -> linear_regression runs.
+
+class TestLinearPipeline:
+
+    GOAL = "Analyze relationship between sales and price"
+
+    def test_no_error_on_clean_data(self, linear_df):
+        memory = _run(linear_df, self.GOAL, "sales")
+        assert memory.get("error") is None
+
+    def test_model_results_present(self, linear_df):
+        memory = _run(linear_df, self.GOAL, "sales")
+        assert len(_fitted(memory)) >= 1
+
+    def test_linear_model_fitted(self, linear_df):
+        memory = _run(linear_df, self.GOAL, "sales")
+        types = [r.get("model_type", "") for r in _fitted(memory)]
+        assert any("Linear" in t for t in types), f"Expected a linear model, got: {types}"
+
+    def test_r_squared_in_memory(self, linear_df):
+        memory = _run(linear_df, self.GOAL, "sales")
+        linear_results = [r for r in _fitted(memory) if "Linear" in r.get("model_type", "")]
+        assert len(linear_results) >= 1
+        assert "r_squared" in linear_results[0]
+
+
