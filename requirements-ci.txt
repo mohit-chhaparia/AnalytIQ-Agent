@@ -12,7 +12,7 @@ scipy>=1.11.0
 # Statistical modeling
 statsmodels>=0.14.0
 scikit-learn>=1.4.0
-matplotlib>=3.8.0
+matplotlib<3.8.0
 plotly>=5.18.0
 
 # LLM backends (keyless mode tested in CI)
