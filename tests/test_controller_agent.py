@@ -49,3 +49,22 @@ def poisson_df():
     return pd.DataFrame({"claims": y, "age_group": x})
 
 
+# Helper
+
+def _run(df, goal, outcome):
+    """Run the agent with LLM and dynamic analysis disabled."""
+    agent = StatisticalAnalysisAgent(
+        df=df,
+        user_goal=goal,
+        outcome=outcome,
+        use_llm=False,
+        use_dynamic=False,
+    )
+    return agent.run()
+
+
+def _fitted(memory):
+    """Return fitted models from the correct memory key."""
+    return memory.get("fitted_models", [])
+
+
