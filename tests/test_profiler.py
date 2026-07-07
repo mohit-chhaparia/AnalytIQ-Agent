@@ -53,3 +53,43 @@ class TestInferVariableType:
         assert infer_variable_type(s) == "date_or_datetime"
 
 
+# numeric_summary
+
+class TestNumericSummary:
+    REQUIRED_KEYS = ("mean", "std", "min", "q1", "median", "q3", "max", "outlier_count_iqr")
+
+    def test_returns_required_keys(self):
+        s = pd.Series(range(20), dtype=float)
+        result = numeric_summary(s)
+        for key in self.REQUIRED_KEYS:
+            assert key in result, f"Missing key: '{key}'"
+
+    def test_mean_correct(self):
+        s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
+        assert numeric_summary(s)["mean"] == pytest.approx(3.0)
+
+    def test_median_correct(self):
+        s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
+        assert numeric_summary(s)["median"] == pytest.approx(3.0)
+
+    def test_outlier_count_correct(self):
+        # IQR method: values far outside [Q1 - 1.5*IQR, Q3 + 1.5*IQR] are outliers
+        s = pd.Series([1.0] * 20 + [1000.0])   # 1000 is a clear outlier
+        result = numeric_summary(s)
+        assert result["outlier_count_iqr"] >= 1
+
+    def test_no_outliers_in_uniform_data(self):
+        s = pd.Series(np.linspace(0, 10, 30))
+        result = numeric_summary(s)
+        assert result["outlier_count_iqr"] == 0
+
+    def test_empty_series_returns_empty(self):
+        result = numeric_summary(pd.Series([], dtype=float))
+        assert result == {}
+
+    def test_missing_values_ignored(self):
+        s = pd.Series([1.0, 2.0, np.nan, 4.0, 5.0])
+        result = numeric_summary(s)
+        assert result["mean"] == pytest.approx(3.0)
+
+
