@@ -85,3 +85,21 @@ class TestOutputContract:
         assert "outcome_type" in result
 
 
+# Binary outcome
+
+class TestBinaryOutcome:
+
+    def test_outcome_type_is_binary(self, binary_profile):
+        result = recommend_models(binary_profile, "churn", "predict churn")
+        assert result["outcome_type"] == "binary"
+
+    def test_logistic_recommended(self, binary_profile):
+        result = recommend_models(binary_profile, "churn", "predict churn")
+        models = [r["model"] for r in result["recommendations"]]
+        assert any("Logistic" in m for m in models), f"Expected logistic in {models}"
+
+    def test_at_least_two_recommendations(self, binary_profile):
+        result = recommend_models(binary_profile, "churn", "predict churn")
+        assert len(result["recommendations"]) >= 2
+
+
