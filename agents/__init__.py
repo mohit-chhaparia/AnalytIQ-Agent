@@ -2,7 +2,11 @@
 
 from agents.controller_agent import StatisticalAnalysisAgent
 from agents.data_profiler import profile_dataframe
-from agents.diagnostics_agent import run_diagnostics_for_result
+from agents.diagnostics_agent import (
+    run_diagnostics_for_result,
+    run_diagnostics,
+    interpret_diagnostics,
+)
 from agents.eda_agent import recommend_eda_plots
 from agents.intent_agent import infer_analysis_modes
 from agents.ml_agent import run_tabular_ml
