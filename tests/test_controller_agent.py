@@ -32,3 +32,20 @@ def linear_df():
     return pd.DataFrame({"sales": y, "price": x})
 
 
+@pytest.fixture
+def logistic_df():
+    np.random.seed(42)
+    x = np.linspace(-2, 2, 60)
+    prob = 1 / (1 + np.exp(-3 * x))
+    y = np.random.binomial(1, prob)
+    return pd.DataFrame({"churn": y, "score": x})
+
+
+@pytest.fixture
+def poisson_df():
+    np.random.seed(42)
+    x = np.linspace(0, 2, 40)
+    y = np.random.poisson(np.exp(0.3 + 0.5 * x))
+    return pd.DataFrame({"claims": y, "age_group": x})
+
+
