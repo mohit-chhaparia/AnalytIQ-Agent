@@ -156,3 +156,19 @@ class TestLogisticPipeline:
         assert "auc" in logistic[0]["metrics"]
 
 
+# Poisson pipeline
+# "count" keyword routes to "count_modeling" -> poisson_regression.
+
+class TestPoissonPipeline:
+
+    GOAL = "Model count of insurance claims by age group"
+
+    def test_no_error_on_count_data(self, poisson_df):
+        memory = _run(poisson_df, self.GOAL, "claims")
+        assert memory.get("error") is None
+
+    def test_dispersion_present_for_poisson(self, poisson_df):
+        memory = _run(poisson_df, self.GOAL, "claims")
+        poisson_results = [r for r in _fitted(memory) if "Poisson" in r.get("model_type", "")]
+        if poisson_results:
+            assert "dispersion" in poisson_results[0]
