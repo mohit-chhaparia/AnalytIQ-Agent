@@ -1,0 +1,48 @@
+#=================================================================================
+# Verifies live API connections for all three LLM backends.
+# Runs ONLY when manually triggered (workflow_dispatch) to avoid consuming
+# API quota on every push. Add ANTHROPIC_API_KEY, GEMINI_API_KEY, GROQ_API_KEY
+# to your GitHub repository secrets before running.
+#=================================================================================
+
+name: LLM Integration Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      backends:
+        description: "Backends to test (claude, gemini, groq, or all)"
+        required: false
+        default: "all"
+
+jobs:
+  llm-connections:
+    name: Test LLM Connections
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install anthropic google-generativeai openai python-dotenv
+
+      - name: Install project agents
+        run: pip install -r requirements-ci.txt
+
+      - name: Run LLM connection test
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY:      ${{ secrets.GROQ_API_KEY }}
+          CLAUDE_MODEL_AGENT: "claude-haiku-4-5-20251001"
+          GEMINI_MODEL:       "gemini-1.5-flash"
+          GROQ_MODEL:         "llama-3.1-8b-instant"
+        run: python scripts/test_llm_connections.py
