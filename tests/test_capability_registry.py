@@ -14,3 +14,8 @@ def test_find_linear():
     assert name == "linear_regression"
 
 
+def test_find_poisson():
+    name, details = find_capability("count outcome, use poisson model")
+    assert name == "poisson_regression"
+
+
