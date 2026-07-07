@@ -202,3 +202,43 @@ def _build_context(memory: dict) -> dict:
     }
 
 
+def _dict_to_md(d: dict) -> str:
+    md = "| Metric | Value |\n|---|---|\n"
+    for k, v in d.items():
+        md += f"| {k} | {round(float(v), 4) if isinstance(v, float) else v} |\n"
+    return md
+
+
+def _table_to_md(rows: list) -> str:
+    if not rows:
+        return ""
+    headers = list(rows[0].keys())
+    md = "| " + " | ".join(headers) + " |\n"
+    md += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+    for row in rows:
+        md += "| " + " | ".join(str(v) for v in row.values()) + " |\n"
+    return md
+
+
+def _profile_to_md(profile: dict) -> str:
+    cols = profile.get("columns", [])
+    if not cols:
+        return "_No profile available._"
+    md = "| Column | Type | Missing % | Unique |\n|---|---|---|---|\n"
+    for c in cols[:20]:
+        md += f"| {c['name']} | {c['inferred_type']} | {c.get('missing_pct',0):.1f}% | {c.get('unique_count','—')} |\n"
+    if len(cols) > 20:
+        md += f"| … ({len(cols)-20} more) | | | |\n"
+    return md
+
+
+def _make_serialisable(obj):
+    if isinstance(obj, dict):
+        return {k: _make_serialisable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_make_serialisable(v) for v in obj]
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return str(obj)
