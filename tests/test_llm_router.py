@@ -40,4 +40,13 @@ def test_best_model_for_backward_compat():
     assert result is None or isinstance(result, str)
 
 
+def test_chart_interpretation_only_gemini():
+    from agents.llm_router import TASK_ROUTES
+    backends = [b for b, _ in TASK_ROUTES.get("chart_interpretation", [])]
+    assert backends == ["gemini"], "Chart interpretation must only route to Gemini"
 
+
+def test_tool_orchestration_only_claude():
+    from agents.llm_router import TASK_ROUTES
+    backends = [b for b, _ in TASK_ROUTES.get("tool_orchestration", [])]
+    assert backends == ["claude"], "Tool orchestration must only route to Claude"
