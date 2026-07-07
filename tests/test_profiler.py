@@ -93,3 +93,49 @@ class TestNumericSummary:
         assert result["mean"] == pytest.approx(3.0)
 
 
+# profile_dataframe
+
+class TestProfileDataframe:
+
+    def test_shape_correct(self):
+        df = pd.DataFrame({"a": range(25), "b": range(25)})
+        p = profile_dataframe(df)
+        assert p["shape"]["rows"] == 25
+        assert p["shape"]["columns"] == 2
+
+    def test_column_count_matches(self):
+        df = pd.DataFrame({"a": range(10), "b": range(10), "c": range(10)})
+        p = profile_dataframe(df)
+        assert len(p["columns"]) == 3
+
+    def test_type_inference_in_profile(self):
+        df = pd.DataFrame({
+            "num": list(range(25)),
+            "cat": (["x", "y", "z"] * 9)[:25],   # *8 gives only 24; need *9=27 then slice
+            "bin": ([0, 1] * 13)[:25],             # *12 gives only 24; need *13=26 then slice
+        })
+        p = profile_dataframe(df)
+        types = {c["name"]: c["inferred_type"] for c in p["columns"]}
+        assert types["num"] == "continuous_numeric"
+        assert types["cat"] == "categorical"
+        assert types["bin"] == "binary"
+
+    def test_missing_values_counted(self):
+        df = pd.DataFrame({"a": [1, 2, np.nan, 4, np.nan]})
+        p = profile_dataframe(df)
+        col = p["columns"][0]
+        assert col["missing_count"] == 2
+        assert col["missing_pct"] == pytest.approx(40.0)
+
+    def test_no_missing_values(self):
+        df = pd.DataFrame({"a": [1, 2, 3, 4, 5]})
+        p = profile_dataframe(df)
+        assert p["columns"][0]["missing_count"] == 0
+        assert p["columns"][0]["missing_pct"] == 0.0
+
+    def test_duplicate_rows_detected(self):
+        df = pd.DataFrame({"a": [1, 2, 1, 3, 2], "b": [10, 20, 10, 30, 20]})
+        p = profile_dataframe(df)
+        assert p["duplicates"]["duplicate_rows"] == 2
+
+    
