@@ -1,0 +1,35 @@
+#=========================================================================
+# AnalytIQ Agent — CI/test dependencies
+# Mirrors requirements.txt but omits pycaret[full] (too heavy for CI).
+# The full app requires pycaret; tests do not.
+#=========================================================================
+
+# Core
+pandas>=2.0.0
+numpy>=1.26.0
+scipy>=1.11.0
+
+# Statistical modeling
+statsmodels>=0.14.0
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+plotly>=5.18.0
+
+# LLM backends (keyless mode tested in CI)
+anthropic>=0.28.0
+google-generativeai>=0.7.0
+openai>=1.30.0
+ollama>=0.2.0
+
+# Report generation
+jinja2>=3.1.0
+pyarrow>=15.0.0
+
+# Utilities
+openpyxl>=3.1.0
+python-dotenv>=1.0.0
+pillow>=10.0.0
+
+# Testing & linting
+pytest>=8.0.0
+ruff>=0.4.0
