@@ -31,5 +31,5 @@ python-dotenv>=1.0.0
 pillow>=10.0.0
 
 # Testing & linting
-pytest>=8.0.0
+pytest<8.0.0
 ruff>=0.4.0
