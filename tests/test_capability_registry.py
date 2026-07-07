@@ -44,3 +44,8 @@ def test_list_capabilities_non_empty():
     assert all(isinstance(c, str) for c in caps)
 
 
+def test_all_registry_entries_have_required_keys():
+    for name, details in CAPABILITY_REGISTRY.items():
+        assert "supported" in details, f"{name} missing 'supported'"
+        assert "engine"    in details, f"{name} missing 'engine'"
+        assert "task_types" in details, f"{name} missing 'task_types'"
