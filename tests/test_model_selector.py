@@ -131,3 +131,13 @@ class TestCountOutcome:
         assert any("Poisson" in m for m in models), f"Expected Poisson in {models}"
 
 
+# Time-series keyword routing
+
+class TestTimeSeriesKeywords:
+
+    def test_arima_recommended_when_goal_mentions_forecast(self, ts_profile):
+        result = recommend_models(ts_profile, "sales", "forecast monthly sales time series")
+        models = [r["model"] for r in result["recommendations"]]
+        assert any("ARIMA" in m or "time" in m.lower() for m in models), (
+            f"Expected time-series model in {models}"
+        )
