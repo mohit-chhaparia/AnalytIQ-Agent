@@ -34,3 +34,7 @@ def test_known_unsupported_survival():
     assert is_known_unsupported("survival analysis for time to churn") is True
 
 
+def test_known_unsupported_mixed():
+    assert is_known_unsupported("fit a mixed effects model with lme4") is True
+
+
