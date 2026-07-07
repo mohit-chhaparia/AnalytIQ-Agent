@@ -138,4 +138,29 @@ class TestProfileDataframe:
         p = profile_dataframe(df)
         assert p["duplicates"]["duplicate_rows"] == 2
 
-    
+    def test_no_duplicate_rows(self):
+        df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [10, 20, 30, 40]})
+        p = profile_dataframe(df)
+        assert p["duplicates"]["duplicate_rows"] == 0
+
+    def test_numeric_summary_included_for_numeric_cols(self):
+        df = pd.DataFrame({"x": np.linspace(0, 10, 20)})
+        p = profile_dataframe(df)
+        col = p["columns"][0]
+        assert "mean" in col
+        assert "std" in col
+
+    def test_sample_values_populated(self):
+        df = pd.DataFrame({"cat": ["A", "B", "C", "A", "B"] * 4})
+        p = profile_dataframe(df)
+        col = p["columns"][0]
+        assert "sample_values" in col
+        assert len(col["sample_values"]) >= 1
+
+    def test_outlier_count_in_numeric_profile(self):
+        s = [1.0] * 18 + [1000.0, -1000.0]  # two obvious outliers
+        df = pd.DataFrame({"x": s})
+        p = profile_dataframe(df)
+        col = p["columns"][0]
+        assert col.get("outlier_count_iqr", 0) >= 2
+
