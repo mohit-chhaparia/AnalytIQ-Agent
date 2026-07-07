@@ -32,3 +32,11 @@ def test_interpret_returns_strings():
     assert len(notes) >= 2
 
 
+def test_threshold_range():
+    np.random.seed(2)
+    y = np.random.randint(0, 2, 100)
+    p = np.random.rand(100)
+    r = tune_thresholds(y, p)
+    thresholds = [row["threshold"] for row in r["threshold_table"]]
+    assert min(thresholds) == pytest.approx(0.10)
+    assert max(thresholds) == pytest.approx(0.90)
