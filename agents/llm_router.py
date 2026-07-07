@@ -74,3 +74,21 @@ def best_for(task: str) -> Tuple[Optional[str], Optional[str]]:
     return None, None
 
 
+def best_model_for(task: str) -> Optional[str]:
+    """Backward-compat wrapper — returns backend name or None."""
+    backend, _ = best_for(task)
+    return backend
+
+
+def availability_report() -> dict:
+    hints = {
+        "claude":   "console.anthropic.com",
+        "gemini":   "aistudio.google.com/apikey  (free)",
+        "groq":     "console.groq.com  (free)",
+        "ollama":   "set LLM_BACKEND=ollama in .env",
+        "lmstudio": "set LLM_BACKEND=lmstudio in .env",
+    }
+    return {
+        name: ("✅ ready" if ok else f"❌ not set — {hints.get(name, '')}")
+        for name, ok in AVAILABLE.items()
+    }
