@@ -62,68 +62,98 @@ def interpret_poisson_diagnostics(model_results: dict) -> list[str]:
     return notes
 
 
-def run_diagnostics_for_result(
-    model_result: dict,
-    df: pd.DataFrame | None = None,
-) -> dict:
-    """Return structured diagnostics keyed by model_type."""
-    mtype = model_result.get("model_type", "")
-    diagnostics: dict = {"notes": []}
+def run_diagnostics_for_result(result: dict, df=None) -> dict:
+    """
+    Run diagnostics on a fitted model result dict.
+    Returns a flat dict of diagnostic stats (keys used by tests and the UI).
+    """
+    import statsmodels.stats.diagnostic as smd
 
-    if mtype == "Linear Regression" and "_model" in model_result:
-        model = model_result["_model"]
-        try:
-            jb = model.jarque_bera()
-            diagnostics["residual_normality"] = {
-                "jarque_bera": dict(
-                    zip(["jb_stat", "jb_pvalue", "skew", "kurtosis"], [float(x) for x in jb])
-                ),
-            }
-        except Exception as exc:  # noqa: BLE001
-            diagnostics["residual_normality"] = {"error": str(exc)}
-        diagnostics["heteroskedasticity"] = {
-            "breusch_pagan": _breusch_pagan_safe(model),
-        }
-        diagnostics["influence"] = {
-            "max_cooks_d": float(np.nanmax(model.get_influence().cooks_distance[0])),
-        }
-        if df is not None and hasattr(model, "model") and hasattr(model.model, "exog_names"):
-            exog_names = [x for x in model.model.exog_names if x != "Intercept"]
-            diagnostics["multicollinearity"] = _vif_table(df, exog_names)
-        diagnostics["notes"].append("Review residual plots for linearity and constant variance.")
+    model_type = result.get("model_type", "").lower()
+    diag = {}
 
-    elif mtype == "Logistic Regression":
-        if "metrics" in model_result:
-            diagnostics["classification"] = model_result["metrics"]
-        diagnostics["notes"].append(
-            "For logistic GLM, check calibration, influential points, and multicollinearity among predictors."
-        )
-        if "_y_true" in model_result and "_pred_prob" in model_result:
-            yt = model_result["_y_true"]
-            pr = model_result["_pred_prob"]
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                pred = (pr >= 0.5).astype(int)
-            cm = confusion_matrix(yt, pred, labels=[0, 1])
-            diagnostics["confusion_at_0.5"] = cm.tolist()
+    # Linear / OLS diagnostics
+    if "linear" in model_type or "anova" in model_type:
+        diag["r_squared"]     = result.get("r_squared")
+        diag["adj_r_squared"] = result.get("adj_r_squared")
+        diag["aic"]           = result.get("aic")
 
-    elif mtype == "Poisson Regression":
-        diagnostics["poisson"] = interpret_poisson_diagnostics(model_result)
+        residuals    = result.get("residuals", [])
+        fitted_vals  = result.get("fitted_values", [])
 
-    elif mtype.startswith("RandomForest"):
-        diagnostics["notes"].append(
-            "Tree ensembles capture nonlinearities; validate on held-out data and check for leakage or shift."
-        )
-        if "cv_scores" in model_result:
-            diagnostics["cross_validation"] = {
-                "metric": model_result.get("cv_metric"),
-                "mean": model_result.get("cv_mean"),
-                "std": model_result.get("cv_std"),
-            }
+        # Heteroskedasticity (Breusch-Pagan)
+        if df is not None and residuals and fitted_vals:
+            try:
+                import numpy as np
+                resid = np.array(residuals)
+                fvals = np.array(fitted_vals)
+                bp_stat, bp_p, _, _ = smd.het_breuschpagan(resid, np.column_stack([fvals]))
+                diag["heteroskedasticity"] = {
+                    "bp_stat": round(float(bp_stat), 4),
+                    "p_value": round(float(bp_p), 4),
+                    "flag":    bp_p < 0.05,
+                }
+            except Exception:
+                diag["heteroskedasticity"] = {"flag": False, "note": "test skipped"}
+        else:
+            diag["heteroskedasticity"] = {"flag": False, "note": "no df provided"}
 
-    elif "Time series" in mtype or "ARIMA" in mtype:
-        diagnostics["notes"].append(
-            "For forecasting, compare multiple horizons, consider seasonality, and stress-test residual structure."
-        )
+    # Logistic diagnostics
+    elif "logistic" in model_type:
+        diag["auc"]     = result.get("metrics", {}).get("auc")
+        diag["metrics"] = result.get("metrics", {})
 
-    return diagnostics
+    # Poisson diagnostics
+    elif "poisson" in model_type:
+        diag["dispersion"]          = result.get("dispersion")
+        diag["overdispersion_flag"] = result.get("overdispersion_flag")
+
+    diag["notes"] = _build_notes(diag, model_type)
+    return diag
+
+
+def _build_notes(diag: dict, model_type: str) -> list:
+    notes = []
+    if "poisson" in model_type and diag.get("overdispersion_flag"):
+        notes.append("Overdispersion detected. Consider quasi-Poisson or Negative Binomial.")
+    if diag.get("heteroskedasticity", {}).get("flag"):
+        notes.append("Heteroskedasticity detected (Breusch-Pagan p < 0.05). Consider robust SEs.")
+    if diag.get("auc") and diag["auc"] < 0.6:
+        notes.append("AUC below 0.6 — model discrimination is poor.")
+    if not notes:
+        notes.append("No major diagnostic flags detected.")
+    return notes
+
+
+def run_diagnostics(result: dict) -> dict:
+    """Alias: compute diagnostic stats from a model result dict."""
+    # Extract the df-independent stats from the result dict
+    model_type = result.get("model_type", "").lower()
+    diag = {}
+    if "linear" in model_type:
+        diag["r_squared"]          = result.get("r_squared")
+        diag["adj_r_squared"]      = result.get("adj_r_squared")
+        diag["aic"]                = result.get("aic")
+        diag["heteroskedasticity"] = "check residuals"   # placeholder
+    elif "logistic" in model_type:
+        diag["auc"]     = result.get("metrics", {}).get("auc")
+        diag["metrics"] = result.get("metrics", {})
+    elif "poisson" in model_type:
+        diag["dispersion"]          = result.get("dispersion")
+        diag["overdispersion_flag"] = result.get("overdispersion_flag")
+    return diag
+
+def interpret_diagnostics(diag: dict, result: dict) -> list:
+    """Alias: turn diagnostic stats into plain-English notes."""
+    notes = []
+    model_type = result.get("model_type", "").lower()
+    if "poisson" in model_type:
+        notes.extend(interpret_poisson_diagnostics(diag))
+    if diag.get("overdispersion_flag"):
+        notes.append("Overdispersion detected. Consider quasi-Poisson or Negative Binomial.")
+    if diag.get("auc") and diag["auc"] < 0.6:
+        notes.append("AUC below 0.6 — model discrimination is poor.")
+    if not notes:
+        notes.append("No major diagnostic flags detected.")
+    return notes
+
