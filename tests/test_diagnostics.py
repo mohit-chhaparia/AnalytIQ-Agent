@@ -83,3 +83,44 @@ class TestInterpretPoissonDiagnostics:
         assert all(isinstance(n, str) for n in notes)
 
 
+# run_diagnostics_for_result — Linear
+
+class TestLinearDiagnostics:
+
+    def test_returns_dict(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert isinstance(diag, dict)
+
+    def test_r_squared_present(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "r_squared" in diag
+
+    def test_heteroskedasticity_key_present(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "heteroskedasticity" in diag
+
+    def test_heteroskedasticity_has_flag(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "flag" in diag["heteroskedasticity"]
+
+    def test_notes_is_list(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "notes" in diag
+        assert isinstance(diag["notes"], list)
+
+    def test_notes_nonempty(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert len(diag["notes"]) >= 1
+
+    def test_aic_present(self, linear_result):
+        result, df = linear_result
+        diag = run_diagnostics_for_result(result, df)
+        assert "aic" in diag
+
+
