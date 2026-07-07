@@ -68,3 +68,34 @@ def _fitted(memory):
     return memory.get("fitted_models", [])
 
 
+# Memory structure
+
+class TestMemoryStructure:
+
+    def test_run_returns_dict(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert isinstance(memory, dict)
+
+    def test_profile_present_in_memory(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert "profile" in memory
+
+    def test_profile_shape_correct(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert memory["profile"]["shape"]["rows"] == 30
+        assert memory["profile"]["shape"]["columns"] == 2
+
+    def test_logs_are_populated(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert "logs" in memory
+        assert len(memory["logs"]) > 0
+
+    def test_profile_step_logged(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert any("profile_data" in log for log in memory["logs"])
+
+    def test_eda_step_logged(self, linear_df):
+        memory = _run(linear_df, "Analyze relationship between sales and price", "sales")
+        assert any("eda" in log for log in memory["logs"])
+
+
