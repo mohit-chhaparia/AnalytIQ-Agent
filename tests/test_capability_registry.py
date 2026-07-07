@@ -38,3 +38,9 @@ def test_known_unsupported_mixed():
     assert is_known_unsupported("fit a mixed effects model with lme4") is True
 
 
+def test_list_capabilities_non_empty():
+    caps = list_capabilities()
+    assert len(caps) >= 4
+    assert all(isinstance(c, str) for c in caps)
+
+
