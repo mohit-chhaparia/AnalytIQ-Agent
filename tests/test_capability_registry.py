@@ -3,3 +3,9 @@ from agents.capability_registry import (
 )
 
 
+def test_find_logistic():
+    name, details = find_capability("predict churn using logistic regression")
+    assert name == "logistic_regression"
+    assert details["supported"] is True
+
+
